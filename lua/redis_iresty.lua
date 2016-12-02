@@ -172,18 +172,21 @@ function _M.subscribe( self, channel )
     end
 
     local function do_read_func ( do_read )
+		if do_read == false then 
+			self.set_keepalive_mod(redis)
+			return 
+		end
         if do_read == nil or do_read == true then
-            if not redis then 
-                ngx.log(ngx.ERR, "redis is nil")
-                return
-            end
+			if not redis then
+				redis = redis_c:new()
+				self:connect_mod(redis)
+			end
             res, err = redis:read_reply()
             if not res then
                 return nil, err
             end
             return res
         end
-
         redis:unsubscribe(channel)
         self.set_keepalive_mod(redis)
         return 
@@ -227,10 +230,7 @@ end
 
 for i = 1, #commands do
     local cmd = commands[i]
-    _M[cmd] =
-            function (self, ...)
-                return do_command(self, cmd, ...)
-            end
+    _M[cmd] =function (self, ...) return do_command(self, cmd, ...) end
 end
 
 function _M.new(self, opts)

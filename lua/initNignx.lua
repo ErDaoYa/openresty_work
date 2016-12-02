@@ -1,13 +1,18 @@
 local services = ngx.shared.services;
 local redis = require ("redis_iresty")
-local red = redis:new()
 
 local set_shared = function()
-    local ok, err = red:get("/user/user")
-    if not ok then
-        ngx.log(ngx.ERR, "failed to get service form redis: ", err)
+	local red = redis:new()
+    local keys, err = red:keys("bs*")
+    if err or type(keys) ~= "table" then
+        ngx.log(ngx.ERR, "failed to get keys form redis, err : ", err)
         return
     end
+	for k,v in pairs(keys)do
+		local address =  red:hget(v, "address")
+		-- location_regex = v.split("bs:service:")
+		ngx.log(ngx.ERR, v,address)
+	end
     local ok, err, forc = services:set("/user/user", ok);
     if not ok then
         ngx.log(ngx.ERR,"failed to set upstream",err)
@@ -15,11 +20,12 @@ local set_shared = function()
 end
 
 -- redis subscribe
-local subscrible_redis = function()
+local subscribe_redis = function()
 	local func = redis:subscribe( "service" )
 	if not func then
 		ngx.log(ngx.ERR, "subcrible failed ", err)
 	end
+
 	while true do
 		local res, err = func()
 		if err then
@@ -41,8 +47,7 @@ ngx_status_handler = function(premature)
         return
     end
     nginx_stoped = false
-    set_shared()
-    ngx.log(ngx.ERR, "nginx worker " .. ngx.worker.id() .." is runing...")
+    ngx.log(ngx.INFO, "nginx worker " .. ngx.worker.id() .." is runing...")
     ngx.timer.at(30, ngx_status_handler)
 end
 
@@ -53,5 +58,14 @@ if 0 == ngx.worker.id() then
         log(ngx.ERR, "failed to create timer: ", err)
         return
     end
-	local ok, err = ngx.timer.at(0, subscrible_redis)
+	if not nginx_stoped then
+		local ok, err = ngx.timer.at(0, set_shared)
+		if not ok then
+			log(ngx.ERR, "failed to create timer for get service form redis: ", err)
+		end
+		local ok, err = ngx.timer.at(0, subscribe_redis)
+		if not ok then
+			log(ngx.ERR, "failed to create timer to redis sub: ", err)
+		end
+	end
 end
