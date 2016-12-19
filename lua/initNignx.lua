@@ -16,8 +16,7 @@ end
 
 -- redis subscribe
 local subscrible_redis = function()
-	local red = redis:new({timeout=1000})
-	local func = red:subscribe( "service" )
+	local func = redis:subscribe( "service" )
 	if not func then
 		ngx.log(ngx.ERR, "subcrible failed ", err)
 	end
@@ -44,7 +43,7 @@ ngx_status_handler = function(premature)
     nginx_stoped = false
     set_shared()
     ngx.log(ngx.ERR, "nginx worker " .. ngx.worker.id() .." is runing...")
-    ngx.timer.at(60, ngx_status_handler)
+    ngx.timer.at(30, ngx_status_handler)
 end
 
 -- 只开一个worker处理这个定时器

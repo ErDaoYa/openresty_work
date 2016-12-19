@@ -97,8 +97,9 @@ function _M.connect_mod( self, redis )
 end
 
 function _M.set_keepalive_mod( redis )
-    -- put it into the connection pool of size 100, with 60 seconds max idle time
-    return redis:set_keepalive(60000, 1000)
+    -- put it into the connection pool of size 100, 
+    -- with 60 seconds max idle time
+    return redis:set_keepalive(60000, 100)
 end
 
 function _M.init_pipeline( self )
@@ -172,6 +173,10 @@ function _M.subscribe( self, channel )
 
     local function do_read_func ( do_read )
         if do_read == nil or do_read == true then
+            if not redis then 
+                ngx.log(ngx.ERR, "redis is nil")
+                return
+            end
             res, err = redis:read_reply()
             if not res then
                 return nil, err
@@ -207,7 +212,7 @@ local function do_command(self, cmd, ... )
     local fun = redis[cmd]
     local result, err = fun(redis, ...)
     if not result or err then
-        -- ngx.log(ngx.ERR, "pipeline result:", result, " err:", err)
+        -- ngx.log(ngx.ERR, cmd, " result:", result, " err:", err)
         return nil, err
     end
 
