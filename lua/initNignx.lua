@@ -1,8 +1,7 @@
 local services = ngx.shared.services;
 local redis = require ("redis_iresty")
 local red = redis:new()
---
---
+
 local set_shared = function()
     local ok, err = red:get("/user/user")
     if not ok then
@@ -14,21 +13,25 @@ local set_shared = function()
         ngx.log(ngx.ERR,"failed to set upstream",err)
     end
 end
-local nginx_status = false
-ngx_sta_handler = function(premature)
+
+-- 判断nginx状态
+local nginx_stoped = false
+
+ngx_status_handler = function(premature)
     if premature then
-        nginx_status = true
+        nginx_stoped = true
         ngx.log(ngx.ERR, "nginx is stoping or reloading ...")
         return
     end
-    nginx_status = false
+    nginx_stoped = false
     set_shared()
     ngx.log(ngx.ERR, "nginx worker " .. ngx.worker.id() .." is runing...")
-    ngx.timer.at(60, ngx_sta_handler)
+    ngx.timer.at(60, ngx_status_handler)
 end
---ngx.timer.at(0, ngx_sta_handler)
+
+-- 只开一个worker处理这个定时器
 if 0 == ngx.worker.id() then
-    local ok, err = ngx.timer.at(0, ngx_sta_handler)
+    local ok, err = ngx.timer.at(0, ngx_status_handler)
     if not ok then
         log(ngx.ERR, "failed to create timer: ", err)
         return

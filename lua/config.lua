@@ -1,7 +1,7 @@
 local _config = {}
 local _mt = {
     __index = {
-        redis_host = "127.0.0.1",
+        redis_host = "172.16.69.100",
         redis_port = 6379
     }
 }

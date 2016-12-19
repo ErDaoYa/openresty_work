@@ -1,6 +1,8 @@
 -- redis 访问封装，来自最佳实践
 
 local redis_c = require "resty.redis"
+local config = require "config"
+
 
 local ok, new_tab = pcall(require, "table.new")
 if not ok or type(new_tab) ~= "function" then
@@ -91,7 +93,7 @@ end
 -- change connect address as you need
 function _M.connect_mod( self, redis )
     redis:set_timeout(self.timeout)
-    return redis:connect("127.0.0.1", 6379)
+    return redis:connect(config["redis_host"], config["redis_port"])
 end
 
 function _M.set_keepalive_mod( redis )
